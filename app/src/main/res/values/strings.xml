@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Animals</string>
+
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="animal_name_placeholder">Animal Name</string>
+    <string name="image_of_an_animal">Image of an animal</string>
+    <string name="location_placeholder">Location</string>
+    <string name="animal_lifespan_placeholder">Animal Lifespan</string>
+    <string name="animal_diet_placeholder">Animal Diet</string>
+</resources>
