@@ -1,9 +1,9 @@
 package com.devmmurray.animals.viewmodel
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
+import com.devmmurray.animals.di.DaggerViewModelComponent
 import com.devmmurray.animals.model.Animal
 import com.devmmurray.animals.model.AnimalAPIService
 import com.devmmurray.animals.model.ApiKey
@@ -12,21 +12,25 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.observers.DisposableSingleObserver
 import io.reactivex.schedulers.Schedulers
+import javax.inject.Inject
 
-private const val TAG = "ListViewModel"
-
-class ListViewModel(application: Application): AndroidViewModel(application) {
+class ListViewModel(application: Application) : AndroidViewModel(application) {
 
     val animals by lazy { MutableLiveData<List<Animal>>() }
     val loadError by lazy { MutableLiveData<Boolean>() }
     val loading by lazy { MutableLiveData<Boolean>() }
     private val disposable = CompositeDisposable()
-    private val apiService = AnimalAPIService()
+
+    @Inject
+    lateinit var apiService: AnimalAPIService
     private val prefs = SharedPreferencesHelper(getApplication())
     private var invalidApiKey = false
 
+    init {
+        DaggerViewModelComponent.create().inject(this)
+    }
+
     fun refresh() {
-        Log.d(TAG, ".refresh Called")
         loading.value = true
         invalidApiKey = false
         val key = prefs.getApiKey()
@@ -43,26 +47,22 @@ class ListViewModel(application: Application): AndroidViewModel(application) {
     }
 
     private fun getKey() {
-        Log.d(TAG, ".getKey Called")
         disposable.add(
             apiService.getApiKey()
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribeWith(object: DisposableSingleObserver<ApiKey>() {
+                .subscribeWith(object : DisposableSingleObserver<ApiKey>() {
                     override fun onSuccess(key: ApiKey) {
-                        Log.d(TAG, "OnSuccess Called ${key.key}")
                         if (key.key.isNullOrEmpty()) {
                             loadError.value = true
                             loading.value = false
                         } else {
-                            Log.d(TAG, "Key Received! ${key.key}")
                             prefs.saveApiKey(key.key)
                             getAnimals(key.key)
                         }
                     }
 
                     override fun onError(e: Throwable) {
-                        Log.d(TAG, "getKey.onError Called ${e.message}")
                         e.printStackTrace()
                         loading.value = false
                         loadError.value = true
@@ -72,12 +72,11 @@ class ListViewModel(application: Application): AndroidViewModel(application) {
     }
 
     private fun getAnimals(key: String) {
-        Log.d(TAG, "getAnimals Called -> $key")
         disposable.add(
             apiService.getAnimals(key)
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribeWith(object: DisposableSingleObserver<List<Animal>>() {
+                .subscribeWith(object : DisposableSingleObserver<List<Animal>>() {
                     override fun onSuccess(list: List<Animal>) {
                         loadError.value = false
                         animals.value = list
